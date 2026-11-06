@@ -24,7 +24,7 @@ def ids(r):
     return [d["id"] for d in r.json()["items"]]
 
 
-# ---------- авторизация ----------
+#  авторизация 
 def test_login_ok_and_shape(client):
     r = client.post(f"{API}/auth/login", json={"login": "ivanov", "password": "S3cret!pass"})
     assert r.status_code == 200
@@ -106,7 +106,7 @@ def test_logout_other_users_session_rejected(client, ivanov):
     assert client.post(f"{API}/auth/refresh", json={"refreshToken": other["refreshToken"]}).status_code == 200
 
 
-# ---------- справочники ----------
+#  справочники 
 def test_reference(client, ivanov):
     s = client.get(f"{API}/sections", headers=auth(ivanov)).json()["items"]
     assert len(s) == 4
@@ -117,7 +117,7 @@ def test_reference(client, ivanov):
     assert any(t["id"] == 14 and t["categoryId"] == 2 for t in types)
 
 
-# ---------- CRUD + идемпотентность ----------
+#  CRUD + идемпотентность 
 def test_create_idempotent_and_get(client, ivanov):
     body = new_defect()
     r = client.post(f"{API}/defects", json=body, headers=auth(ivanov))
@@ -168,7 +168,7 @@ def test_patch(client, ivanov, smirnov):
     assert client.patch(f"{API}/defects/{body['id']}", json={"picket": None}, headers=auth(ivanov)).status_code == 400
 
 
-# ---------- RLS ----------
+#  RLS 
 def test_rls_list_isolation(client, ivanov, smirnov, sidorova):
     a = client.get(f"{API}/defects?limit=100", headers=auth(ivanov))
     b = client.get(f"{API}/defects?limit=100", headers=auth(smirnov))
@@ -227,7 +227,7 @@ def test_create_with_foreign_shift_rejected(client, smirnov):
     assert r.status_code == 400 and r.json()["error"]["details"][0]["field"] == "shiftId"
 
 
-# ---------- статусы ----------
+#  статусы 
 def test_status_flow_and_history(client, ivanov, petrov):
     body = new_defect()
     client.post(f"{API}/defects", json=body, headers=auth(ivanov))
@@ -262,7 +262,7 @@ def test_status_return_from_fixed(client, ivanov):
         assert client.post(url, json={"toStatus": st}, headers=auth(ivanov)).status_code == 200
 
 
-# ---------- список: фильтры, поиск, пагинация ----------
+#  список: фильтры, поиск, пагинация 
 def test_filters(client, sidorova):
     r = client.get(f"{API}/defects?limit=100&status=NEW,IN_PROGRESS&severity=CRITICAL", headers=auth(sidorova))
     assert r.status_code == 200
@@ -314,7 +314,7 @@ def test_sort_orders(client, sidorova):
     assert t == sorted(t, reverse=True)
 
 
-# ---------- фото ----------
+#  фото 
 def test_photo_upload_replace_and_protected_download(client, ivanov, smirnov):
     body = new_defect()
     client.post(f"{API}/defects", json=body, headers=auth(ivanov))
@@ -347,7 +347,7 @@ def test_photo_rejections(client, ivanov):
     assert r.status_code == 400
 
 
-# ---------- смены ----------
+#  смены 
 def test_shifts(client, ivanov, petrov, smirnov, sidorova):
     sid = str(uuid.uuid4())
     body = {"id": sid, "sectionId": SEC1, "memberIds": [ivanov["user"]["id"]]}
@@ -374,7 +374,7 @@ def test_shift_summary(client, petrov):
     assert j["totalDefects"] == sum(j["bySeverity"].values()) == sum(j["byCategory"].values()) >= 1
 
 
-# ---------- прочее ----------
+#  прочее 
 def test_outdated_client(client, ivanov):
     r = client.get(f"{API}/sections", headers={**auth(ivanov), "X-App-Version": "0.9.0"})
     assert r.status_code == 426 and r.json()["error"]["code"] == "CLIENT_OUTDATED"

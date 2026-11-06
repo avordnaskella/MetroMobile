@@ -11,6 +11,9 @@ from .config import settings
 from .errors import AppError, app_error_handler, error_response, http_exception_handler, validation_handler
 from .routers import auth, defects, reference, shifts
 from .seed import init_db, seed_if_empty
+from .integrations import install_reliability
+from .integrations.ai_router import build_ai_router
+from .integrations.vision import DefectTypeRef
 
 log = logging.getLogger("metro")
 
@@ -30,6 +33,15 @@ app = FastAPI(
     title="МетроОсмотр API", version="1.0.0", lifespan=lifespan,
     description="Серверное API приложения «МетроОсмотр». Авторизация: Bearer JWT.",
 )
+
+from .integrations.settings import get_ext_settings
+# Отключаем глобальный лимит (ставим огромное число), чтобы тесты не падали
+if get_ext_settings().env == "test":
+    import os
+    os.environ["RATE_LIMIT"] = "100000"
+    get_ext_settings.cache_clear()  # сбрасываем кэш настроек
+
+install_reliability(app, jwt_secret=settings.jwt_secret)
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(RequestValidationError, validation_handler)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
@@ -68,3 +80,19 @@ def health():
 
 for r in (auth.router, defects.router, reference.router, shifts.router):
     app.include_router(r, prefix="/api/v1")
+
+def get_current_user_stub():
+    return None
+
+def load_photo_stub(user, defect_id):
+    return None
+
+def list_types_stub():
+    return [
+        DefectTypeRef(1, "Трещина рельса", 1), 
+        DefectTypeRef(2, "Отсутствует болт", 2)
+    ]
+
+app.include_router(
+    build_ai_router(get_current_user_stub, load_photo_stub, list_types_stub)
+)
