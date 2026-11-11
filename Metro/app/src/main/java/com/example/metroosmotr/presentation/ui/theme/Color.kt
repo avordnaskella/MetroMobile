@@ -1,4 +1,4 @@
-package com.example.metroosmotr.ui.theme
+package com.example.metroosmotr.presentation.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
