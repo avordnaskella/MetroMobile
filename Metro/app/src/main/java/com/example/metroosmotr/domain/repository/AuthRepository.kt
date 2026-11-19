@@ -8,5 +8,5 @@ interface AuthRepository {
 
     suspend fun logout()
 
-    suspend fun getCurrentUser(): String? // Возвращает ID или токен текущего юзера
+    suspend fun getCurrentUser(): String? // возвращает id или токен текущего юзера
 }

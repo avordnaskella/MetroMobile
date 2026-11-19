@@ -13,7 +13,7 @@ class CreateDefectUseCase(
             return Result.failure(it)
         }
 
-        // вохранение локально со статусом "Ожидает отправки"
+        // cохранение локально со статусом "Ожидает отправки"
         return try {
             writer.saveDefect(defect)
             Result.success(Unit)

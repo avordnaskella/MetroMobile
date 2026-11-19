@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktlint)
+    kotlin("plugin.serialization") version "2.2.10"
+
+
 }
 
 android {
@@ -56,4 +59,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler) // используем KSP вместо kapt
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.kotlinx.serialization.json)
 }
