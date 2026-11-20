@@ -1,6 +1,5 @@
 package com.example.metroosmotr.data.mapper
 
-
 import com.example.metroosmotr.data.local.entity.DefectEntity
 import com.example.metroosmotr.data.remote.dto.DefectDto
 import com.example.metroosmotr.domain.model.Defect
