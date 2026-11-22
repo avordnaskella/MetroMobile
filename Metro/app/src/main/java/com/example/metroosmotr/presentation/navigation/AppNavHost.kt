@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.metroosmotr.presentation.home.HomeScreen
+import com.example.metroosmotr.presentation.list.ListScreen
 
 @Composable
 fun AppNavHost() {
@@ -20,7 +21,9 @@ fun AppNavHost() {
             )
         }
         // Заглушки для остальных экранов (добавим позже)
-        composable(Screen.List.route) { Text("Экран списка") }
+        composable(Screen.List.route) {
+            ListScreen()
+        }
         composable(Screen.Create.route) { Text("Экран создания") }
         composable(Screen.Shift.route) { Text("Экран смены") }
     }
