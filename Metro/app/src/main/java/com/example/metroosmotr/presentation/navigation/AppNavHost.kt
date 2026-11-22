@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.metroosmotr.presentation.create.CreateScreen
 import com.example.metroosmotr.presentation.home.HomeScreen
 import com.example.metroosmotr.presentation.list.ListScreen
 
@@ -24,7 +25,11 @@ fun AppNavHost() {
         composable(Screen.List.route) {
             ListScreen()
         }
-        composable(Screen.Create.route) { Text("Экран создания") }
+        composable(Screen.Create.route) {
+            CreateScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         composable(Screen.Shift.route) { Text("Экран смены") }
     }
 }

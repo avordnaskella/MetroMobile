@@ -1,8 +1,8 @@
 package com.example.metroosmotr.domain.usecase
 
 import com.example.metroosmotr.domain.repository.ReferenceRepository
-
-class ValidatePicketUseCase(
+import javax.inject.Inject
+class ValidatePicketUseCase @Inject constructor(
     private val referenceRepository: ReferenceRepository,
 ) {
     suspend operator fun invoke(

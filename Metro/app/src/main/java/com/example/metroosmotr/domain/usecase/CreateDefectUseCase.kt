@@ -2,8 +2,8 @@ package com.example.metroosmotr.domain.usecase
 
 import com.example.metroosmotr.domain.model.Defect
 import com.example.metroosmotr.domain.repository.DefectWriter
-
-class CreateDefectUseCase(
+import javax.inject.Inject
+class CreateDefectUseCase @Inject constructor(
     private val writer: DefectWriter,
     private val validatePicket: ValidatePicketUseCase,
 ) {

@@ -39,7 +39,7 @@ object NetworkModule {
             .build()
     }
 
-    
+
     @Provides
     @Singleton
     fun provideMetroApiService(retrofit: Retrofit): MetroApiService {
