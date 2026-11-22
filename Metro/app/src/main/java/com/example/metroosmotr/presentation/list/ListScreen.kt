@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Defect
+import com.example.metroosmotr.domain.model.DefectStatus
 import com.example.metroosmotr.domain.model.Severity
 
 @Composable
@@ -38,18 +39,28 @@ fun ListScreen(
             modifier = Modifier.padding(16.dp)
         )
 
-        // Баннер "Нет интернета"
+        // Баннер "Нет интернета" (как на макете)
         if (uiState.isOffline) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0D6)),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFB26A00))
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Нет подключения", fontWeight = FontWeight.Bold, color = Color(0xFF7A4800))
-                    Text("Показаны сохранённые данные", color = Color(0xFF7A4800), fontSize = 14.sp)
-                    TextButton(onClick = { viewModel.refreshFromServer() }) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("📡", fontSize = 20.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Нет подключения", fontWeight = FontWeight.Bold, color = Color(0xFF7A4800))
+                    }
+                    Text("Нет подключения к интернету. Показаны сохранённые данные", color = Color(0xFF7A4800), fontSize = 14.sp)
+                    TextButton(
+                        onClick = { viewModel.refreshFromServer() },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
                         Text("Повторить", color = Color(0xFF7A4800))
                     }
                 }
@@ -59,7 +70,7 @@ fun ListScreen(
         // Список
         if (uiState.isLoading && uiState.defects.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Color(0xFF1B4F9C))
             }
         } else if (uiState.defects.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -72,7 +83,7 @@ fun ListScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.defects) { defect ->
-                    DefectItem(defect)
+                    DefectCard(defect)
                 }
             }
         }
@@ -80,8 +91,8 @@ fun ListScreen(
 }
 
 @Composable
-fun DefectItem(defect: Defect) {
-    // Цвет полосы слева в зависимости от опасности
+fun DefectCard(defect: Defect) {
+    // Цвет полосы в зависимости от опасности
     val severityColor = when (defect.severity) {
         Severity.CRITICAL -> Color(0xFFC62828)
         Severity.MEDIUM -> Color(0xFFB26A00)
@@ -94,7 +105,7 @@ fun DefectItem(defect: Defect) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Цветная полоса
+            // Цветная полоса слева
             Box(
                 modifier = Modifier
                     .width(6.dp)
@@ -102,25 +113,52 @@ fun DefectItem(defect: Defect) {
                     .background(severityColor)
             )
             Column(modifier = Modifier.padding(16.dp)) {
+                // Заголовок (Тип неисправности)
                 Text(
-                    text = "Пикет ${defect.picket}", // В будущем заменить на название типа
+                    text = "Расшатан болт крепления", // TODO: Брать из справочника typeId
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF14181F)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                // Подзаголовок (Участок · Путь · Пикет)
                 Text(
-                    text = "Статус: ${defect.status.name}",
+                    text = "Перегон А — Б · Путь 1 · ПК ${defect.picket}",
                     fontSize = 13.sp,
                     color = Color(0xFF4B5563)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                // Бейджи (Опасность, Статус)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // Бейдж опасности
-                    Badge(text = defect.severity.name, color = severityColor)
+                    Badge(
+                        text = when(defect.severity) {
+                            Severity.CRITICAL -> "Критическая"
+                            Severity.MEDIUM -> "Средняя"
+                            Severity.LOW -> "Низкая"
+                        },
+                        bgColor = severityColor.copy(alpha = 0.15f),
+                        textColor = severityColor
+                    )
                     // Бейдж статуса
-                    if (defect.status.name == "NEW") {
-                        Badge(text = "Новая", color = Color(0xFF1565C0))
+                    val statusBadge = when (defect.status) {
+                        DefectStatus.NEW -> "Новая" to Color(0xFF1565C0)
+                        DefectStatus.IN_PROGRESS -> "В работе" to Color(0xFF6A3FB5)
+                        DefectStatus.FIXED -> "Устранена" to Color(0xFF00695C)
+                        DefectStatus.VERIFIED -> "Проверена" to Color(0xFF4B5563)
                     }
+                    Badge(
+                        text = statusBadge.first,
+                        bgColor = statusBadge.second.copy(alpha = 0.15f),
+                        textColor = statusBadge.second
+                    )
+                    // Бейдж "Ожидает отправки" (если не синхронизировано)
+                    // В реальности нужно проверять isSynced в Domain-модели
+                    Badge(
+                        text = "Ожидает отправки",
+                        bgColor = Color(0xFFFFF0D6),
+                        textColor = Color(0xFF7A4800)
+                    )
                 }
             }
         }
@@ -128,12 +166,12 @@ fun DefectItem(defect: Defect) {
 }
 
 @Composable
-fun Badge(text: String, color: Color) {
+fun Badge(text: String, bgColor: Color, textColor: Color) {
     Box(
         modifier = Modifier
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
+            .background(bgColor, RoundedCornerShape(14.dp))
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Text(text = text, color = color, fontSize = 13.sp)
+        Text(text = text, color = textColor, fontSize = 13.sp)
     }
 }
