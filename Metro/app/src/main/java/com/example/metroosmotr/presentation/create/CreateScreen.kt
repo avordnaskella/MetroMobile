@@ -1,8 +1,14 @@
 package com.example.metroosmotr.presentation.create
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,52 +19,43 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Severity
-import androidx.compose.foundation.clickable
-import android.Manifest
-import android.content.pm.PackageManager
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import com.example.metroosmotr.presentation.utils.PhotoUtils
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateScreen(
     onNavigateBack: () -> Unit,
     viewModel: CreateViewModel = hiltViewModel()
 ) {
-
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
 
-// Состояние для хранения URI текущего фото
+    // Состояние для хранения URI текущего фото
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
-// Лаунчер для камеры
+    // Лаунчер для камеры
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && currentPhotoUri != null) {
-
+            viewModel.onPhotoCaptured(currentPhotoUri.toString())
         }
     }
 
-// Лаунчер для разрешений
+    // Лаунчер для разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -67,8 +64,8 @@ fun CreateScreen(
             cameraLauncher.launch(currentPhotoUri!!)
         }
     }
-    val uiState by viewModel.uiState.collectAsState()
 
+    // Эффект для возврата назад при успешном сохранении
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) onNavigateBack()
     }
@@ -103,7 +100,6 @@ fun CreateScreen(
 
             // Пикет и Метры
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Поле Пикета (с ошибкой)
                 Column(modifier = Modifier.weight(1f)) {
                     CustomTextField(
                         label = "Пикет (ПК)",
@@ -120,7 +116,6 @@ fun CreateScreen(
                         )
                     }
                 }
-                // Поле Метров (пока просто заглушка)
                 Column(modifier = Modifier.weight(1f)) {
                     CustomTextField(
                         label = "Метры",
@@ -138,21 +133,20 @@ fun CreateScreen(
             // Степень опасности
             Text("Степень опасности", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SeverityButton("Низкая", Severity.LOW, uiState.severity, viewModel::onSeverityChange)
-                SeverityButton("Средняя", Severity.MEDIUM, uiState.severity, viewModel::onSeverityChange)
-                SeverityButton("Критическая", Severity.CRITICAL, uiState.severity, viewModel::onSeverityChange)
+                SeverityButton("Низкая", Severity.LOW, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
+                SeverityButton("Средняя", Severity.MEDIUM, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
+                SeverityButton("Критическая", Severity.CRITICAL, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
             }
 
             // Фото
             Text("Фото", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Кнопка добавления фото
+                // Кнопка Камеры
                 Box(
                     modifier = Modifier
                         .size(72.dp)
                         .border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
                         .clickable {
-                            // Проверяем разрешение и открываем камеру
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                                 currentPhotoUri = PhotoUtils.createImageUri(context)
                                 cameraLauncher.launch(currentPhotoUri!!)
@@ -164,12 +158,17 @@ fun CreateScreen(
                 ) {
                     Icon(Icons.Outlined.PhotoCamera, contentDescription = "Фото", tint = Color(0xFF1B4F9C))
                 }
-                // Заглушки для фото
-                Box(modifier = Modifier.size(72.dp).background(Color(0xFFCBD2DC), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                    Text("Фото 1", fontSize = 12.sp, color = Color(0xFF4B5563))
-                }
-                Box(modifier = Modifier.size(72.dp).background(Color(0xFFCBD2DC), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                    Text("Фото 2", fontSize = 12.sp, color = Color(0xFF4B5563))
+
+                // Плашка "Фото 1" (показывается только если фото сделано)
+                if (currentPhotoUri != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .background(Color(0xFFCBD2DC), RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Фото 1", fontSize = 12.sp, color = Color(0xFF4B5563))
+                    }
                 }
             }
 
@@ -188,7 +187,7 @@ fun CreateScreen(
                 )
             )
 
-            // Дата и время (заглушка)
+            // Дата и время
             CustomDropdownField(label = "Дата и время", value = "25.10.2026, 02:14", icon = Icons.Default.DateRange)
 
             // Кнопка Сохранить
@@ -209,20 +208,22 @@ fun CreateScreen(
                 }
             }
 
+            // Подпись под кнопкой
             Text(
                 text = "Запись сохранится на устройстве и уйдёт на сервер при появлении сети",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    .padding(top = 8.dp, bottom = 24.dp),
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
-// Компоненты для полей
+// --- Вспомогательные компоненты ---
+
 @Composable
 fun CustomTextField(
     label: String,
@@ -271,13 +272,22 @@ fun CustomDropdownField(
             Text(text = label, fontSize = 12.sp, color = Color(0xFF4B5563))
             Text(text = value, fontSize = 16.sp, color = Color.Black)
         }
-        Text(if (icon == null) "▼" else "", color = Color.Gray)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = Color.Gray)
+        } else {
+            Text("▼", color = Color.Gray, fontSize = 12.sp)
+        }
     }
 }
 
 @Composable
-fun SeverityButton(text: String, severity: Severity, current: Severity, onClick: (Severity) -> Unit,
-                   modifier: Modifier = Modifier) {
+fun SeverityButton(
+    text: String,
+    severity: Severity,
+    current: Severity,
+    onClick: (Severity) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val isSelected = severity == current
     val color = if (isSelected) {
         when (severity) {
@@ -295,8 +305,9 @@ fun SeverityButton(text: String, severity: Severity, current: Severity, onClick:
             contentColor = if (isSelected) Color.White else Color.Black
         ),
         shape = RoundedCornerShape(8.dp),
-        modifier = modifier.height(56.dp)
+        modifier = modifier.height(56.dp),
+        contentPadding = PaddingValues(0.dp) // Убираем отступы, чтобы текст влезал
     ) {
-        Text(text, fontSize = 14.sp)
+        Text(text, fontSize = 12.sp, maxLines = 1)
     }
 }

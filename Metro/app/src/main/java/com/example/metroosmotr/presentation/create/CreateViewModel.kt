@@ -21,6 +21,12 @@ import javax.inject.Inject
 class CreateViewModel @Inject constructor(
     private val createDefectUseCase: CreateDefectUseCase
 ) : ViewModel() {
+    private var currentPhotoUri: String? = null
+
+    // Метод, который вызовет экран после съемки
+    fun onPhotoCaptured(uri: String) {
+        currentPhotoUri = uri
+    }
 
     private val _uiState = MutableStateFlow(CreateUiState())
     val uiState: StateFlow<CreateUiState> = _uiState.asStateFlow()
@@ -64,7 +70,8 @@ class CreateViewModel @Inject constructor(
                 picket = picketInt,
                 severity = currentState.severity,
                 comment = currentState.comment,
-                detectedAt = now
+                detectedAt = now,
+                photoUrl = currentPhotoUri
             )
 
             // Вызываем UseCase (он делает валидацию пикета и сохраняет в Room)
