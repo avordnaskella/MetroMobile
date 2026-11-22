@@ -28,12 +28,45 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Severity
 import androidx.compose.foundation.clickable
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.example.metroosmotr.presentation.utils.PhotoUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateScreen(
     onNavigateBack: () -> Unit,
     viewModel: CreateViewModel = hiltViewModel()
 ) {
+
+    val context = LocalContext.current
+
+// Состояние для хранения URI текущего фото
+    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+// Лаунчер для камеры
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && currentPhotoUri != null) {
+
+        }
+    }
+
+// Лаунчер для разрешений
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            currentPhotoUri = PhotoUtils.createImageUri(context)
+            cameraLauncher.launch(currentPhotoUri!!)
+        }
+    }
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
@@ -118,7 +151,15 @@ fun CreateScreen(
                     modifier = Modifier
                         .size(72.dp)
                         .border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
-                        .clickable { /* TODO: Вызов камеры */ },
+                        .clickable {
+                            // Проверяем разрешение и открываем камеру
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                currentPhotoUri = PhotoUtils.createImageUri(context)
+                                cameraLauncher.launch(currentPhotoUri!!)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Outlined.PhotoCamera, contentDescription = "Фото", tint = Color(0xFF1B4F9C))
