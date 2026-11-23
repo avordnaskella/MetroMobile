@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.metroosmotr.domain.model.Defect
 import com.example.metroosmotr.domain.model.Severity
+import com.example.metroosmotr.domain.repository.FlashlightController
 import com.example.metroosmotr.domain.repository.LocationProvider
 import com.example.metroosmotr.domain.usecase.CreateDefectUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CreateViewModel @Inject constructor(
     private val createDefectUseCase: CreateDefectUseCase,
-    private val locationProvider: LocationProvider
+    private val locationProvider: LocationProvider,
+    private val flashlightController: FlashlightController
 ) : ViewModel() {
     private var currentPhotoUri: String? = null
 
@@ -99,5 +101,9 @@ class CreateViewModel @Inject constructor(
                 _uiState.update { it.copy(errorMessage = "Не удалось получить геолокацию (нет разрешения или сигнала)") }
             }
         }
+    }
+
+    fun toggleFlashlight(isOn: Boolean) {
+        if (isOn) flashlightController.turnOn() else flashlightController.turnOff()
     }
 }

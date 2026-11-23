@@ -45,6 +45,7 @@ fun CreateScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var isCameraDenied by remember { mutableStateOf(false) }
+    var isFlashlightOn by remember { mutableStateOf(false) }
 
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -159,6 +160,22 @@ fun CreateScreen(
                         .clickable { galleryLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) { Icon(Icons.Outlined.Image, null, tint = Color(0xFF1B4F9C)) }
+                // кнопка фонарика
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .border(2.dp, if (isFlashlightOn) Color(0xFFFFC107) else Color(0xFF8A93A0), RoundedCornerShape(8.dp))
+                        .background(if (isFlashlightOn) Color(0xFFFFF8E1) else Color.White)
+                        .clickable {
+                            isFlashlightOn = !isFlashlightOn
+                            viewModel.toggleFlashlight(isFlashlightOn)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🔦", fontSize = 24.sp)
+                }
+
+
 
                 // Превью фото
                 if (currentPhotoUri != null) {
