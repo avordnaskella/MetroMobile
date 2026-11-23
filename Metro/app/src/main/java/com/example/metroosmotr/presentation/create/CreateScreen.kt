@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,94 +44,60 @@ fun CreateScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    // Состояние для хранения URI текущего фото
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Лаунчер для камеры
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && currentPhotoUri != null) {
-            viewModel.onPhotoCaptured(currentPhotoUri.toString())
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && currentPhotoUri != null) viewModel.onPhotoCaptured(currentPhotoUri.toString())
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val safeUri = PhotoUtils.copyUriToInternalStorage(context, uri)
+            if (safeUri != null) {
+                currentPhotoUri = safeUri
+                viewModel.onPhotoCaptured(safeUri.toString())
+            }
         }
     }
 
-    // Лаунчер для разрешений
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             currentPhotoUri = PhotoUtils.createImageUri(context)
             cameraLauncher.launch(currentPhotoUri!!)
         }
     }
 
-    // Эффект для возврата назад при успешном сохранении
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) onNavigateBack()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF6F7F9))
-    ) {
-        // Шапка
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF6F7F9))) {
         TopAppBar(
             title = { Text("Новая неисправность", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
-                }
-            },
+            navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, null) } },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
         )
 
-        // Форма
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Поля выбора (Участок и Путь)
-            CustomDropdownField(label = "Участок / перегон", value = "Перегон А — Б")
-            CustomDropdownField(label = "Путь", value = "Главный путь 1")
+            CustomDropdownField("Участок / перегон", "Перегон А — Б")
+            CustomDropdownField("Путь", "Главный путь 1")
 
-            // Пикет и Метры
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
-                    CustomTextField(
-                        label = "Пикет (ПК)",
-                        value = uiState.picket,
-                        onValueChange = viewModel::onPicketChange,
-                        isError = uiState.errorMessage != null
-                    )
+                    CustomTextField("Пикет (ПК)", uiState.picket, viewModel::onPicketChange, uiState.errorMessage != null)
                     if (uiState.errorMessage != null) {
-                        Text(
-                            text = uiState.errorMessage!!,
-                            color = Color(0xFFC62828),
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 12.dp, top = 4.dp)
-                        )
+                        Text(uiState.errorMessage!!, color = Color(0xFFC62828), fontSize = 12.sp, modifier = Modifier.padding(start = 12.dp, top = 4.dp))
                     }
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    CustomTextField(
-                        label = "Метры",
-                        value = "50",
-                        onValueChange = {},
-                        isError = uiState.errorMessage != null
-                    )
-                }
+                CustomTextField("Метры", "50", {}, modifier = Modifier.weight(1f))
             }
 
-            // Справочники
-            CustomDropdownField(label = "Категория объекта", value = "Крепления (болты, клеммы)")
-            CustomDropdownField(label = "Тип неисправности", value = "Расшатан болт")
+            CustomDropdownField("Категория объекта", "Крепления (болты, клеммы)")
+            CustomDropdownField("Тип неисправности", "Расшатан болт")
 
-            // Степень опасности
             Text("Степень опасности", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SeverityButton("Низкая", Severity.LOW, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
@@ -138,14 +105,11 @@ fun CreateScreen(
                 SeverityButton("Критическая", Severity.CRITICAL, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
             }
 
-            // Фото
             Text("Фото", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Кнопка Камеры
+                // Камера
                 Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
+                    modifier = Modifier.size(72.dp).border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
                         .clickable {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                                 currentPhotoUri = PhotoUtils.createImageUri(context)
@@ -155,159 +119,75 @@ fun CreateScreen(
                             }
                         },
                     contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.PhotoCamera, contentDescription = "Фото", tint = Color(0xFF1B4F9C))
-                }
+                ) { Icon(Icons.Outlined.PhotoCamera, null, tint = Color(0xFF1B4F9C)) }
 
-                // Плашка "Фото 1" (показывается только если фото сделано)
+                // Галерея
+                Box(
+                    modifier = Modifier.size(72.dp).border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
+                        .clickable { galleryLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Outlined.Image, null, tint = Color(0xFF1B4F9C)) }
+
+                // Превью фото
                 if (currentPhotoUri != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .background(Color(0xFFCBD2DC), RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.size(72.dp).background(Color(0xFFCBD2DC), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         Text("Фото 1", fontSize = 12.sp, color = Color(0xFF4B5563))
                     }
                 }
             }
 
-            // Комментарий
             OutlinedTextField(
-                value = uiState.comment,
-                onValueChange = viewModel::onCommentChange,
-                label = { Text("Комментарий") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White
-                )
+                value = uiState.comment, onValueChange = viewModel::onCommentChange,
+                label = { Text("Комментарий") }, modifier = Modifier.fillMaxWidth().height(100.dp),
+                shape = RoundedCornerShape(8.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White)
             )
 
-            // Дата и время
-            CustomDropdownField(label = "Дата и время", value = "25.10.2026, 02:14", icon = Icons.Default.DateRange)
+            CustomDropdownField("Дата и время", "25.10.2026, 02:14", icon = Icons.Default.DateRange)
 
-            // Кнопка Сохранить
             Button(
-                onClick = viewModel::saveDefect,
-                enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(top = 8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B4F9C)),
-                shape = RoundedCornerShape(12.dp)
+                onClick = viewModel::saveDefect, enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth().height(56.dp).padding(top = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B4F9C)), shape = RoundedCornerShape(12.dp)
             ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Сохранить", fontSize = 16.sp)
-                }
+                if (uiState.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                else Text("Сохранить", fontSize = 16.sp)
             }
 
-            // Подпись под кнопкой
-            Text(
-                text = "Запись сохранится на устройстве и уйдёт на сервер при появлении сети",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 24.dp),
-                textAlign = TextAlign.Center
-            )
+            Text("Запись сохранится на устройстве и уйдёт на сервер при появлении сети", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 24.dp), textAlign = TextAlign.Center)
         }
     }
 }
 
-// --- Вспомогательные компоненты ---
-
 @Composable
-fun CustomTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    isError: Boolean = false
-) {
+fun CustomTextField(label: String, value: String, onValueChange: (String) -> Unit, isError: Boolean = false, modifier: Modifier = Modifier) {
     val borderColor = if (isError) Color(0xFFC62828) else Color(0xFF8A93A0)
     val labelColor = if (isError) Color(0xFFC62828) else Color(0xFF4B5563)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.White, RoundedCornerShape(8.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = label, fontSize = 12.sp, color = labelColor)
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
-            modifier = Modifier.fillMaxWidth()
-        )
+    Column(modifier = modifier.fillMaxWidth().height(56.dp).background(Color.White, RoundedCornerShape(8.dp)).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
+        Text(label, fontSize = 12.sp, color = labelColor)
+        BasicTextField(value, onValueChange, textStyle = TextStyle(fontSize = 16.sp, color = Color.Black), modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
-fun CustomDropdownField(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.White, RoundedCornerShape(8.dp))
-            .border(1.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+fun CustomDropdownField(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
+    Row(modifier = Modifier.fillMaxWidth().height(56.dp).background(Color.White, RoundedCornerShape(8.dp)).border(1.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp)).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, fontSize = 12.sp, color = Color(0xFF4B5563))
-            Text(text = value, fontSize = 16.sp, color = Color.Black)
+            Text(label, fontSize = 12.sp, color = Color(0xFF4B5563))
+            Text(value, fontSize = 16.sp, color = Color.Black)
         }
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = Color.Gray)
-        } else {
-            Text("▼", color = Color.Gray, fontSize = 12.sp)
-        }
+        if (icon != null) Icon(icon, null, tint = Color.Gray) else Text("▼", color = Color.Gray, fontSize = 12.sp)
     }
 }
 
 @Composable
-fun SeverityButton(
-    text: String,
-    severity: Severity,
-    current: Severity,
-    onClick: (Severity) -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun SeverityButton(text: String, severity: Severity, current: Severity, onClick: (Severity) -> Unit, modifier: Modifier = Modifier) {
     val isSelected = severity == current
     val color = if (isSelected) {
-        when (severity) {
-            Severity.LOW -> Color(0xFF2E7D32)
-            Severity.MEDIUM -> Color(0xFFB26A00)
-            Severity.CRITICAL -> Color(0xFFC62828)
-        }
+        when (severity) { Severity.LOW -> Color(0xFF2E7D32); Severity.MEDIUM -> Color(0xFFB26A00); Severity.CRITICAL -> Color(0xFFC62828) }
     } else Color(0xFF8A93A0)
-
     OutlinedButton(
-        onClick = { onClick(severity) },
-        border = BorderStroke(1.dp, color),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) color else Color.White,
-            contentColor = if (isSelected) Color.White else Color.Black
-        ),
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier.height(56.dp),
-        contentPadding = PaddingValues(0.dp) // Убираем отступы, чтобы текст влезал
-    ) {
-        Text(text, fontSize = 12.sp, maxLines = 1)
-    }
+        onClick = { onClick(severity) }, border = BorderStroke(1.dp, color),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = if (isSelected) color else Color.White, contentColor = if (isSelected) Color.White else Color.Black),
+        shape = RoundedCornerShape(8.dp), modifier = modifier.height(56.dp), contentPadding = PaddingValues(0.dp)
+    ) { Text(text, fontSize = 12.sp, maxLines = 1) }
 }
