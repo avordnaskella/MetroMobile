@@ -43,6 +43,7 @@ fun CreateScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    var isCameraDenied by remember { mutableStateOf(false) }
 
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -64,6 +65,9 @@ fun CreateScreen(
         if (isGranted) {
             currentPhotoUri = PhotoUtils.createImageUri(context)
             cameraLauncher.launch(currentPhotoUri!!)
+        }
+        else {
+            isCameraDenied = true
         }
     }
 
@@ -106,6 +110,23 @@ fun CreateScreen(
             }
 
             Text("Фото", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
+            // баннер ошибки (если камера запрещена)
+            if (isCameraDenied) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0D6)),
+                    border = BorderStroke(1.dp, Color(0xFFB26A00)),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("📷", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Нет доступа к камере", fontWeight = FontWeight.Bold, color = Color(0xFF7A4800))
+                        }
+                        Text("Чтобы снимать фото, разрешите доступ в настройках. Запись можно сохранить и без фото.", color = Color(0xFF7A4800), fontSize = 13.sp)
+                    }
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Камера
                 Box(
