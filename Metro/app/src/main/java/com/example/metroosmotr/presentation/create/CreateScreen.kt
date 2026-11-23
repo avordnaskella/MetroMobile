@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Severity
 import com.example.metroosmotr.presentation.utils.PhotoUtils
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateScreen(
@@ -68,6 +69,16 @@ fun CreateScreen(
         }
         else {
             isCameraDenied = true
+        }
+    }
+
+    // Лаунчер для разрешения геолокации
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        if (isGranted) {
+            viewModel.fetchLocation()
         }
     }
 
@@ -163,7 +174,26 @@ fun CreateScreen(
                 shape = RoundedCornerShape(8.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White)
             )
 
-            CustomDropdownField("Дата и время", "25.10.2026, 02:14", icon = Icons.Default.DateRange)
+            // Дата и время (кликабельно для получения GPS)
+            // Дата и время
+            Box(
+                modifier = Modifier.clickable {
+                    // Проверяем разрешение перед запросом
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        viewModel.fetchLocation()
+                    } else {
+                        // Запрашиваем разрешение
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    }
+                }
+            ) {
+                CustomDropdownField(label = "Дата и время", value = "25.10.2026, 02:14", icon = Icons.Default.DateRange)
+            }
 
             Button(
                 onClick = viewModel::saveDefect, enabled = !uiState.isLoading,

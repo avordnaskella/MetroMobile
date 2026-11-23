@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.metroosmotr.domain.model.Defect
 import com.example.metroosmotr.domain.model.Severity
+import com.example.metroosmotr.domain.repository.LocationProvider
 import com.example.metroosmotr.domain.usecase.CreateDefectUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CreateViewModel @Inject constructor(
-    private val createDefectUseCase: CreateDefectUseCase
+    private val createDefectUseCase: CreateDefectUseCase,
+    private val locationProvider: LocationProvider
 ) : ViewModel() {
     private var currentPhotoUri: String? = null
 
@@ -83,6 +85,18 @@ class CreateViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = result.exceptionOrNull()?.message ?: "Ошибка")
                 }
+            }
+        }
+    }
+
+    fun fetchLocation() {
+        viewModelScope.launch {
+            val location = locationProvider.getCurrentLocation()
+            if (location != null) {
+                // Здесь можно показать координаты (например, через Toast, но лучше в UI)
+                _uiState.update { it.copy(comment = "Координаты: ${location.first}, ${location.second}") }
+            } else {
+                _uiState.update { it.copy(errorMessage = "Не удалось получить геолокацию (нет разрешения или сигнала)") }
             }
         }
     }
