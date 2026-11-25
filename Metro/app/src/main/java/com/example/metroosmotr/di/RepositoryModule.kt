@@ -3,8 +3,10 @@ package com.example.metroosmotr.di
 import com.example.metroosmotr.data.FlashlightControllerImpl
 import com.example.metroosmotr.data.LocationProviderImpl
 import com.example.metroosmotr.data.NetworkCheckerImpl
+import com.example.metroosmotr.data.repository.AuthRepositoryImpl
 import com.example.metroosmotr.data.repository.DefectRepositoryImpl
 import com.example.metroosmotr.data.repository.ReferenceRepositoryImpl
+import com.example.metroosmotr.domain.repository.AuthRepository
 import com.example.metroosmotr.domain.repository.DefectReader
 import com.example.metroosmotr.domain.repository.DefectSyncSource
 import com.example.metroosmotr.domain.repository.DefectWriter
@@ -39,4 +41,6 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindFlashlight(impl: FlashlightControllerImpl): FlashlightController
+    @Binds
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 }

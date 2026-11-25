@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShiftScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onCloseShift: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -66,7 +67,7 @@ fun ShiftScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = { /* Закрыть смену */ },
+                onClick = { onCloseShift() },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B4F9C)),
                 shape = RoundedCornerShape(12.dp)
