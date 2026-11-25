@@ -3,6 +3,7 @@ package com.example.metroosmotr.presentation.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.metroosmotr.domain.model.AppError
+import com.example.metroosmotr.domain.model.DefectStatus
 import com.example.metroosmotr.domain.usecase.ObserveDefectsUseCase
 import com.example.metroosmotr.domain.usecase.RefreshDefectUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,35 +31,52 @@ class ListViewModel @Inject constructor(
     private fun loadDefects() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-
-            // 1. Сначала слушаем базу данных (Offline-First)
             observeDefects()
-                .catch { e ->
-                    _uiState.update { it.copy(isLoading = false, error = e.message) }
-                }
                 .collect { defects ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            defects = defects,
-                            error = null
-                        )
-                    }
+                    // Сохраняем полный список
+                    _uiState.update { it.copy(allDefects = defects) }
+                    // Применяем текущие фильтры
+                    applyFilters()
                 }
         }
-
-        // 2. В фоне пытаемся обновить данные с сервера
         refreshFromServer()
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        applyFilters()
+    }
+
+    fun onStatusFilterChange(status: DefectStatus?) {
+        _uiState.update { it.copy(selectedStatus = status) }
+        applyFilters()
+    }
+
+    private fun applyFilters() {
+        val state = _uiState.value
+        var filtered = state.allDefects
+
+        // Фильтр по тексту (пикет или комментарий)
+        if (state.searchQuery.isNotBlank()) {
+            filtered = filtered.filter {
+                it.comment?.contains(state.searchQuery, ignoreCase = true) == true ||
+                        it.picket.toString().contains(state.searchQuery)
+            }
+        }
+
+        // Фильтр по статусу
+        if (state.selectedStatus != null) {
+            filtered = filtered.filter { it.status == state.selectedStatus }
+        }
+
+        _uiState.update { it.copy(defects = filtered, isLoading = false) }
     }
 
     fun refreshFromServer() {
         viewModelScope.launch {
             val result = refreshDefects()
             if (result.isFailure) {
-                val error = result.exceptionOrNull()
-                if (error is AppError.Network) {
-                    _uiState.update { it.copy(isOffline = true) }
-                }
+                _uiState.update { it.copy(isOffline = true) }
             } else {
                 _uiState.update { it.copy(isOffline = false) }
             }

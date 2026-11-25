@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,6 +36,36 @@ fun ListScreen(
         if (uiState.defects.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Неисправностей нет", color = Color.Gray) }
         } else {
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = viewModel::onSearchQueryChange,
+                placeholder = { Text("Поиск по пикету, тексту...") },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(8.dp)
+            )
+
+// Чипсы фильтрации
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = uiState.selectedStatus == DefectStatus.NEW,
+                    onClick = { viewModel.onStatusFilterChange(if (uiState.selectedStatus == DefectStatus.NEW) null else DefectStatus.NEW) },
+                    label = { Text("Новые") }
+                )
+                FilterChip(
+                    selected = uiState.selectedStatus == DefectStatus.IN_PROGRESS,
+                    onClick = { viewModel.onStatusFilterChange(if (uiState.selectedStatus == DefectStatus.IN_PROGRESS) null else DefectStatus.IN_PROGRESS) },
+                    label = { Text("В работе") }
+                )
+                FilterChip(
+                    selected = uiState.selectedStatus == DefectStatus.FIXED,
+                    onClick = { viewModel.onStatusFilterChange(if (uiState.selectedStatus == DefectStatus.FIXED) null else DefectStatus.FIXED) },
+                    label = { Text("Устранены") }
+                )
+            }
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(uiState.defects) { defect ->
                     DefectCard(defect) { onNavigateToDefect(defect.id) }
