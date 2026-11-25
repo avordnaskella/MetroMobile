@@ -11,6 +11,7 @@ import com.example.metroosmotr.presentation.create.CreateScreen
 import com.example.metroosmotr.presentation.defect.DefectScreen
 import com.example.metroosmotr.presentation.home.HomeScreen
 import com.example.metroosmotr.presentation.list.ListScreen
+import com.example.metroosmotr.presentation.shift.ShiftScreen
 
 @Composable
 fun AppNavHost() {
@@ -40,7 +41,7 @@ fun AppNavHost() {
             DefectScreen(defectId = id, onNavigateBack = { navController.popBackStack() })
         }
         composable(Screen.Shift.route) {
-            Text("Экран смены (в разработке)")
+            ShiftScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }
