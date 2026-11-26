@@ -43,4 +43,5 @@ abstract class RepositoryModule {
     abstract fun bindFlashlight(impl: FlashlightControllerImpl): FlashlightController
     @Binds
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
 }

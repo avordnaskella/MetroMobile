@@ -1,5 +1,6 @@
 package com.example.metroosmotr.presentation.shift
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,9 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.metroosmotr.presentation.utils.PdfExporter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,6 +23,8 @@ fun ShiftScreen(
     onNavigateBack: () -> Unit,
     onCloseShift: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -66,6 +71,7 @@ fun ShiftScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Кнопка Закрыть смену
             Button(
                 onClick = { onCloseShift() },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -73,6 +79,20 @@ fun ShiftScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Закрыть смену", fontSize = 16.sp)
+            }
+
+            // Кнопка Экспорт в PDF
+            OutlinedButton(
+                onClick = {
+                    // Генерируем PDF (пока с тестовыми данными)
+                    val file = PdfExporter.exportShiftSummary(context, 2, 5, 3)
+                    Toast.makeText(context, "PDF сохранен: ${file.name}", Toast.LENGTH_LONG).show()
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1B4F9C))
+            ) {
+                Text("Экспорт сводки в PDF", color = Color(0xFF1B4F9C), fontSize = 16.sp)
             }
         }
     }

@@ -1,8 +1,9 @@
 package com.example.metroosmotr.domain.usecase
 
 import com.example.metroosmotr.domain.repository.DefectSyncSource
+import javax.inject.Inject
 
-class SyncPendingDefectsUseCase(
+class SyncPendingDefectsUseCase @Inject constructor(
     private val syncSource: DefectSyncSource,
 ) {
     suspend operator fun invoke(): Result<Unit> =
