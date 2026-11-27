@@ -22,6 +22,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Defect
 import com.example.metroosmotr.domain.model.DefectStatus
 import com.example.metroosmotr.domain.model.Severity
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @Composable
 fun ListScreen(
@@ -31,42 +34,57 @@ fun ListScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF6F7F9))) {
-        Text("Неисправности", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp))
+        Text("Неисправности", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.statusBarsPadding())
+
+
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = viewModel::onSearchQueryChange,
+            placeholder = { Text("Поиск по пикету, тексту...") },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(8.dp),
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White)
+        )
+
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = uiState.selectedStatus == null,
+                onClick = { viewModel.onStatusFilterChange(null) },
+                label = { Text("Все") }
+            )
+            FilterChip(
+                selected = uiState.selectedStatus == DefectStatus.NEW,
+                onClick = { viewModel.onStatusFilterChange(DefectStatus.NEW) },
+                label = { Text("Новые") }
+            )
+            FilterChip(
+                selected = uiState.selectedStatus == DefectStatus.IN_PROGRESS,
+                onClick = { viewModel.onStatusFilterChange(DefectStatus.IN_PROGRESS) },
+                label = { Text("В работе") }
+            )
+            FilterChip(
+                selected = uiState.selectedStatus == DefectStatus.FIXED,
+                onClick = { viewModel.onStatusFilterChange(DefectStatus.FIXED) },
+                label = { Text("Устранены") }
+            )
+        }
+
 
         if (uiState.defects.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Неисправностей нет", color = Color.Gray) }
-        } else {
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = viewModel::onSearchQueryChange,
-                placeholder = { Text("Поиск по пикету, тексту...") },
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = RoundedCornerShape(8.dp)
-            )
-
-// Чипсы фильтрации
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = uiState.selectedStatus == DefectStatus.NEW,
-                    onClick = { viewModel.onStatusFilterChange(if (uiState.selectedStatus == DefectStatus.NEW) null else DefectStatus.NEW) },
-                    label = { Text("Новые") }
-                )
-                FilterChip(
-                    selected = uiState.selectedStatus == DefectStatus.IN_PROGRESS,
-                    onClick = { viewModel.onStatusFilterChange(if (uiState.selectedStatus == DefectStatus.IN_PROGRESS) null else DefectStatus.IN_PROGRESS) },
-                    label = { Text("В работе") }
-                )
-                FilterChip(
-                    selected = uiState.selectedStatus == DefectStatus.FIXED,
-                    onClick = { viewModel.onStatusFilterChange(if (uiState.selectedStatus == DefectStatus.FIXED) null else DefectStatus.FIXED) },
-                    label = { Text("Устранены") }
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Неисправностей нет", color = Color.Gray)
             }
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 items(uiState.defects) { defect ->
                     DefectCard(defect) { onNavigateToDefect(defect.id) }
                 }

@@ -34,7 +34,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Severity
 import com.example.metroosmotr.presentation.utils.PhotoUtils
-
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,7 +87,7 @@ fun CreateScreen(
         if (uiState.isSuccess) onNavigateBack()
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF6F7F9))) {
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF6F7F9)).statusBarsPadding()) {
         TopAppBar(
             title = { Text("Новая неисправность", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
             navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, null) } },

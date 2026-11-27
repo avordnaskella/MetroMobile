@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @Composable
 fun HomeScreen(
@@ -30,7 +31,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF6F7F9)) // Фон из макета
-            .padding(16.dp),
+            .statusBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Шапка (Заголовок)
