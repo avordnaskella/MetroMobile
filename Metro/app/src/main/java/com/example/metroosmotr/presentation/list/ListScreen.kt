@@ -19,74 +19,65 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.metroosmotr.domain.model.Defect
 import com.example.metroosmotr.domain.model.DefectStatus
 import com.example.metroosmotr.domain.model.Severity
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.FilterChip
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.example.metroosmotr.presentation.navigation.BottomNavBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreen(
+    navController: NavController,
     onNavigateToDefect: (String) -> Unit,
     viewModel: ListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF6F7F9))) {
-        Text("Неисправности", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.statusBarsPadding())
-
-
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = viewModel::onSearchQueryChange,
-            placeholder = { Text("Поиск по пикету, тексту...") },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(8.dp),
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White)
-        )
-
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                selected = uiState.selectedStatus == null,
-                onClick = { viewModel.onStatusFilterChange(null) },
-                label = { Text("Все") }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Неисправности", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF6F7F9),  titleContentColor = Color.Black)
             )
-            FilterChip(
-                selected = uiState.selectedStatus == DefectStatus.NEW,
-                onClick = { viewModel.onStatusFilterChange(DefectStatus.NEW) },
-                label = { Text("Новые") }
+        },
+        bottomBar = { BottomNavBar(navController) },
+        containerColor = Color(0xFFF6F7F9)
+    ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = viewModel::onSearchQueryChange,
+                placeholder = { Text("Поиск по пикету, тексту...") },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
             )
-            FilterChip(
-                selected = uiState.selectedStatus == DefectStatus.IN_PROGRESS,
-                onClick = { viewModel.onStatusFilterChange(DefectStatus.IN_PROGRESS) },
-                label = { Text("В работе") }
-            )
-            FilterChip(
-                selected = uiState.selectedStatus == DefectStatus.FIXED,
-                onClick = { viewModel.onStatusFilterChange(DefectStatus.FIXED) },
-                label = { Text("Устранены") }
-            )
-        }
 
-
-        if (uiState.defects.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Неисправностей нет", color = Color.Gray)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(uiState.defects) { defect ->
-                    DefectCard(defect) { onNavigateToDefect(defect.id) }
+                FilterChip(selected = uiState.selectedStatus == null, onClick = { viewModel.onStatusFilterChange(null) }, label = { Text("Все") })
+                FilterChip(selected = uiState.selectedStatus == DefectStatus.NEW, onClick = { viewModel.onStatusFilterChange(DefectStatus.NEW) }, label = { Text("Новые") })
+                FilterChip(selected = uiState.selectedStatus == DefectStatus.IN_PROGRESS, onClick = { viewModel.onStatusFilterChange(DefectStatus.IN_PROGRESS) }, label = { Text("В работе") })
+                FilterChip(selected = uiState.selectedStatus == DefectStatus.FIXED, onClick = { viewModel.onStatusFilterChange(DefectStatus.FIXED) }, label = { Text("Устранены") })
+            }
+
+            if (uiState.defects.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Неисправностей нет", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.defects) { defect ->
+                        DefectCard(defect) { onNavigateToDefect(defect.id) }
+                    }
                 }
             }
         }
@@ -98,7 +89,6 @@ fun DefectCard(defect: Defect, onClick: () -> Unit) {
     val severityColor = when (defect.severity) {
         Severity.CRITICAL -> Color(0xFFC62828); Severity.MEDIUM -> Color(0xFFB26A00); Severity.LOW -> Color(0xFF2E7D32)
     }
-
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth().clickable { onClick() }

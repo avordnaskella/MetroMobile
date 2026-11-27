@@ -66,7 +66,9 @@ fun CreateScreen(
             try {
                 currentPhotoUri = PhotoUtils.createImageUri(context)
                 cameraLauncher.launch(currentPhotoUri!!)
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         } else {
             isCameraDenied = true
         }
@@ -110,13 +112,15 @@ fun CreateScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Выпадающие списки
+            // 1. Участок
             DropdownField(
                 label = "Участок / перегон",
                 options = viewModel.sections,
                 selectedOption = viewModel.selectedSection,
                 onOptionSelected = { viewModel.selectedSection = it }
             )
+
+            // 2. Путь
             DropdownField(
                 label = "Путь",
                 options = viewModel.tracks,
@@ -124,6 +128,7 @@ fun CreateScreen(
                 onOptionSelected = { viewModel.selectedTrack = it }
             )
 
+            // 3. Пикет и Метры
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     CustomTextField("Пикет (ПК)", uiState.picket, viewModel::onPicketChange, uiState.errorMessage != null)
@@ -134,6 +139,7 @@ fun CreateScreen(
                 CustomTextField("Метры", uiState.meters, viewModel::onMetersChange, modifier = Modifier.weight(1f))
             }
 
+            // 4. Категория
             DropdownField(
                 label = "Категория объекта",
                 options = viewModel.categories,
@@ -141,6 +147,7 @@ fun CreateScreen(
                 onOptionSelected = { viewModel.selectedCategory = it }
             )
 
+            // 5. Тип
             DropdownField(
                 label = "Тип неисправности",
                 options = viewModel.types,
@@ -148,6 +155,7 @@ fun CreateScreen(
                 onOptionSelected = { viewModel.selectedType = it }
             )
 
+            // 6. Опасность
             Text("Степень опасности", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SeverityButton("Низкая", Severity.LOW, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
@@ -155,6 +163,7 @@ fun CreateScreen(
                 SeverityButton("Критическая", Severity.CRITICAL, uiState.severity, viewModel::onSeverityChange, Modifier.weight(1f))
             }
 
+            // 7. Фото
             Text("Фото", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             if (isCameraDenied) {
                 Card(
@@ -211,12 +220,12 @@ fun CreateScreen(
                 }
             }
 
-            // GPS-координаты (если получены)
+            // 8. GPS
             if (uiState.gpsCoordinates.isNotEmpty()) {
                 CustomTextField("GPS-координаты", uiState.gpsCoordinates, {})
             }
 
-            // Комментарий
+            // 9. Комментарий
             OutlinedTextField(
                 value = uiState.comment, onValueChange = viewModel::onCommentChange,
                 label = { Text("Комментарий") }, modifier = Modifier.fillMaxWidth().height(100.dp),
@@ -229,8 +238,10 @@ fun CreateScreen(
                 )
             )
 
+            // 10. Дата
             CustomDropdownField(label = "Дата и время", value = uiState.date, icon = Icons.Default.DateRange)
 
+            // 11. Кнопка GPS
             Button(
                 onClick = {
                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -242,8 +253,9 @@ fun CreateScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE8F0FE), contentColor = Color(0xFF1B4F9C)),
                 shape = RoundedCornerShape(8.dp)
-            ) { Text("🌍 Получить GPS-координаты") }
+            ) { Text("📍 Получить GPS-координаты") }
 
+            // 12. Сохранить
             Button(
                 onClick = viewModel::saveDefect, enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth().height(56.dp).padding(top = 8.dp),
@@ -258,21 +270,94 @@ fun CreateScreen(
     }
 }
 
-// --- Вспомогательные компоненты ---
+// --- Вспомогательные компоненты (ТОЛЬКО ОДНА ВЕРСИЯ КАЖДОГО) ---
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomTextField(label: String, value: String, onValueChange: (String) -> Unit, isError: Boolean = false, modifier: Modifier = Modifier) {
-    val borderColor = if (isError) Color(0xFFC62828) else Color(0xFF8A93A0)
-    val labelColor = if (isError) Color(0xFFC62828) else Color(0xFF4B5563)
-    Column(modifier = modifier.fillMaxWidth().height(56.dp).background(Color.White, RoundedCornerShape(8.dp)).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
-        Text(label, fontSize = 12.sp, color = labelColor)
-        BasicTextField(value, onValueChange, textStyle = TextStyle(fontSize = 16.sp, color = Color.Black), modifier = Modifier.fillMaxWidth())
+fun DropdownField(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedOption,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = Color.White,
+                focusedContainerColor = Color.White,
+                unfocusedTextColor = Color.Black,
+                focusedTextColor = Color.Black
+            )
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option, color = Color.Black) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }
 
 @Composable
-fun CustomDropdownField(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
-    Row(modifier = Modifier.fillMaxWidth().height(56.dp).background(Color.White, RoundedCornerShape(8.dp)).border(1.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp)).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+fun CustomTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    isError: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = if (isError) Color(0xFFC62828) else Color(0xFF8A93A0)
+    val labelColor = if (isError) Color(0xFFC62828) else Color(0xFF4B5563)
+    Column(
+        modifier = modifier.fillMaxWidth().height(56.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(label, fontSize = 12.sp, color = labelColor)
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun CustomDropdownField(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(56.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, fontSize = 12.sp, color = Color(0xFF4B5563))
             Text(value, fontSize = 16.sp, color = Color.Black)
@@ -282,14 +367,33 @@ fun CustomDropdownField(label: String, value: String, icon: androidx.compose.ui.
 }
 
 @Composable
-fun SeverityButton(text: String, severity: Severity, current: Severity, onClick: (Severity) -> Unit, modifier: Modifier = Modifier) {
+fun SeverityButton(
+    text: String,
+    severity: Severity,
+    current: Severity,
+    onClick: (Severity) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val isSelected = severity == current
     val color = if (isSelected) {
-        when (severity) { Severity.LOW -> Color(0xFF2E7D32); Severity.MEDIUM -> Color(0xFFB26A00); Severity.CRITICAL -> Color(0xFFC62828) }
+        when (severity) {
+            Severity.LOW -> Color(0xFF2E7D32)
+            Severity.MEDIUM -> Color(0xFFB26A00)
+            Severity.CRITICAL -> Color(0xFFC62828)
+        }
     } else Color(0xFF8A93A0)
+
     OutlinedButton(
-        onClick = { onClick(severity) }, border = BorderStroke(1.dp, color),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = if (isSelected) color else Color.White, contentColor = if (isSelected) Color.White else Color.Black),
-        shape = RoundedCornerShape(8.dp), modifier = modifier.height(56.dp), contentPadding = PaddingValues(0.dp)
-    ) { Text(text, fontSize = 12.sp, maxLines = 1) }
+        onClick = { onClick(severity) },
+        border = BorderStroke(1.dp, color),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isSelected) color else Color.White,
+            contentColor = if (isSelected) Color.White else Color.Black
+        ),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier.height(56.dp),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Text(text, fontSize = 12.sp, maxLines = 1)
+    }
 }

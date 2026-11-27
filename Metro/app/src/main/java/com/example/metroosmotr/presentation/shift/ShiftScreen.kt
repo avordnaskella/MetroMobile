@@ -3,47 +3,59 @@ package com.example.metroosmotr.presentation.shift
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.metroosmotr.presentation.navigation.BottomNavBar
 import com.example.metroosmotr.presentation.utils.PdfExporter
-import androidx.compose.foundation.layout.statusBarsPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShiftScreen(
+    navController: NavController,
     onNavigateBack: () -> Unit,
     onCloseShift: () -> Unit
 ) {
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF6F7F9))
-            .statusBarsPadding()
-    ) {
-        TopAppBar(
-            title = { Text("Смена осмотра", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-        )
-
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Карточка смены
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Смена осмотра", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                )
+            )
+        },
+        bottomBar = { BottomNavBar(navController) },
+        containerColor = Color(0xFFF6F7F9)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState()) // <-- ДОБАВИЛИ ПРОКРУТКУ
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFD8E4F8))) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Смена открыта", fontSize = 13.sp, color = Color(0xFF0B2A57))
@@ -54,14 +66,12 @@ fun ShiftScreen(
 
             Text("Сводка смены", fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-            // Плитки со статистикой
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatCard("2", "Критич.", Color(0xFFFBE3E3), Color(0xFF8E1B1B), Modifier.weight(1f))
                 StatCard("5", "Средн.", Color(0xFFFFF0D6), Color(0xFF7A4800), Modifier.weight(1f))
                 StatCard("3", "Низк.", Color(0xFFDFF2E1), Color(0xFF1B5E20), Modifier.weight(1f))
             }
 
-            // Таблица по категориям
             Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     RowItem("Рельсовое полотно", "3")
@@ -71,13 +81,18 @@ fun ShiftScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp)) // Отступ перед кнопками
 
             // Кнопка Закрыть смену
             Button(
-                onClick = { onCloseShift() },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B4F9C)),
+                onClick = onCloseShift,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1B4F9C),
+                    contentColor = Color.White // <-- Принудительно белый текст
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Закрыть смену", fontSize = 16.sp)
@@ -86,16 +101,20 @@ fun ShiftScreen(
             // Кнопка Экспорт в PDF
             OutlinedButton(
                 onClick = {
-                    // Генерируем PDF (пока с тестовыми данными)
                     val file = PdfExporter.exportShiftSummary(context, 2, 5, 3)
                     Toast.makeText(context, "PDF сохранен: ${file.name}", Toast.LENGTH_LONG).show()
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1B4F9C))
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1B4F9C)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1B4F9C))
             ) {
-                Text("Экспорт сводки в PDF", color = Color(0xFF1B4F9C), fontSize = 16.sp)
+                Text("Экспорт сводки в PDF", fontSize = 16.sp)
             }
+
+            Spacer(modifier = Modifier.height(16.dp)) // Отступ снизу, чтобы не прилипало к меню
         }
     }
 }
@@ -112,12 +131,9 @@ fun StatCard(value: String, label: String, bgColor: Color, textColor: Color, mod
 
 @Composable
 fun RowItem(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color(0xFF4B5563))
         Text(value, fontWeight = FontWeight.Bold)
     }
-    Divider(color = Color(0xFFE6E9EE), thickness = 1.dp)
+    HorizontalDivider(color = Color(0xFFE6E9EE), thickness = 1.dp)
 }
