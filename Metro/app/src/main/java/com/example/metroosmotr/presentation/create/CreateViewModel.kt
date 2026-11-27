@@ -1,5 +1,8 @@
 package com.example.metroosmotr.presentation.create
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.metroosmotr.domain.model.Defect
@@ -25,24 +28,44 @@ class CreateViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val flashlightController: FlashlightController
 ) : ViewModel() {
-    private var currentPhotoUri: String? = null
 
-    // Метод, который вызовет экран после съемки
-    fun onPhotoCaptured(uri: String) {
-        currentPhotoUri = uri
-    }
+    private var currentPhotoUri: String? = null
 
     private val _uiState = MutableStateFlow(CreateUiState())
     val uiState: StateFlow<CreateUiState> = _uiState.asStateFlow()
 
-    // Заглушки для ID (в реальном проекте брать из справочников)
-    private val defaultSectionId = "a1b2c3d4-0000-4000-8000-000000000001"
-    private val defaultTrackId = "a1b2c3d4-0000-4000-8000-0000000000a1"
+    // --- СОСТОЯНИЯ ДЛЯ ВЫПАДАЮЩИХ СПИСКОВ (публичные для UI) ---
+    var selectedSection by mutableStateOf("Перегон А — Б")
+    var selectedTrack by mutableStateOf("Главный путь 1")
+    var selectedCategory by mutableStateOf("Крепления (болты, клеммы)")
+    var selectedType by mutableStateOf("Расшатан болт")
 
-    fun onPicketChange(newValue: String) {
-        _uiState.update { it.copy(picket = newValue, errorMessage = null) }
+    // --- СПИСКИ ОПЦИЙ ---
+    val sections = listOf("Перегон А — Б", "Перегон Б — В")
+    val tracks = listOf("Главный путь 1", "Главный путь 2")
+    val categories = listOf("Рельсовое полотно", "Крепления (болты, клеммы)", "Земляное полотно")
+    val types = listOf("Расшатан болт", "Трещина рельса", "Просадка пути")
+
+    init {
+        // Устанавливаем текущую дату при создании экрана
+        val currentDate = SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault()).format(Date())
+        _uiState.update { it.copy(date = currentDate) }
     }
 
+
+    fun onPicketChange(newValue: String) {
+        // Разрешаем только цифры
+        if (newValue.all { it.isDigit() } || newValue.isEmpty()) {
+            _uiState.update { it.copy(picket = newValue, errorMessage = null) }
+        }
+    }
+
+    fun onMetersChange(newValue: String) {
+        // Разрешаем только цифры
+        if (newValue.all { it.isDigit() } || newValue.isEmpty()) {
+            _uiState.update { it.copy(meters = newValue) }
+        }
+    }
     fun onCommentChange(newValue: String) {
         _uiState.update { it.copy(comment = newValue) }
     }
@@ -51,6 +74,11 @@ class CreateViewModel @Inject constructor(
         _uiState.update { it.copy(severity = newSeverity) }
     }
 
+    fun onPhotoCaptured(uri: String) {
+        currentPhotoUri = uri
+    }
+
+    // --- СОХРАНЕНИЕ ---
     fun saveDefect() {
         val currentState = _uiState.value
         val picketInt = currentState.picket.toIntOrNull()
@@ -63,14 +91,15 @@ class CreateViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // Формируем модель
             val now = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
+
+            // В реальном проекте тут нужно мапить выбранные строки в ID из БД
             val newDefect = Defect(
                 id = UUID.randomUUID().toString(),
-                sectionId = defaultSectionId,
-                trackId = defaultTrackId,
-                categoryId = 2, // Заглушка
-                typeId = 14,    // Заглушка
+                sectionId = "a1b2c3d4-0000-4000-8000-000000000001",
+                trackId = "a1b2c3d4-0000-4000-8000-0000000000a1",
+                categoryId = 2,
+                typeId = 14,
                 picket = picketInt,
                 severity = currentState.severity,
                 comment = currentState.comment,
@@ -78,7 +107,6 @@ class CreateViewModel @Inject constructor(
                 photoUrl = currentPhotoUri
             )
 
-            // Вызываем UseCase (он делает валидацию пикета и сохраняет в Room)
             val result = createDefectUseCase(newDefect)
 
             if (result.isSuccess) {
@@ -91,18 +119,20 @@ class CreateViewModel @Inject constructor(
         }
     }
 
+    // --- GPS ---
     fun fetchLocation() {
         viewModelScope.launch {
             val location = locationProvider.getCurrentLocation()
             if (location != null) {
-                // Здесь можно показать координаты (например, через Toast, но лучше в UI)
-                _uiState.update { it.copy(comment = "Координаты: ${location.first}, ${location.second}") }
+                // Пишем координаты в ОТДЕЛЬНОЕ поле, а не в комментарий
+                _uiState.update { it.copy(gpsCoordinates = "GPS: ${location.first}, ${location.second}") }
             } else {
-                _uiState.update { it.copy(errorMessage = "Не удалось получить геолокацию (нет разрешения или сигнала)") }
+                _uiState.update { it.copy(errorMessage = "Геолокация недоступна") }
             }
         }
     }
 
+    // --- ФОНАРИК ---
     fun toggleFlashlight(isOn: Boolean) {
         if (isOn) flashlightController.turnOn() else flashlightController.turnOff()
     }

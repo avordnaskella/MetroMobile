@@ -15,7 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -34,7 +34,6 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.metroosmotr.domain.model.Severity
 import com.example.metroosmotr.presentation.utils.PhotoUtils
-import androidx.compose.foundation.layout.statusBarsPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +45,6 @@ fun CreateScreen(
     val uiState by viewModel.uiState.collectAsState()
     var isCameraDenied by remember { mutableStateOf(false) }
     var isFlashlightOn by remember { mutableStateOf(false) }
-
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -65,41 +63,66 @@ fun CreateScreen(
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            currentPhotoUri = PhotoUtils.createImageUri(context)
-            cameraLauncher.launch(currentPhotoUri!!)
-        }
-        else {
+            try {
+                currentPhotoUri = PhotoUtils.createImageUri(context)
+                cameraLauncher.launch(currentPhotoUri!!)
+            } catch (e: Exception) { e.printStackTrace() }
+        } else {
             isCameraDenied = true
         }
     }
 
-    // Лаунчер для разрешения геолокации
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-        if (isGranted) {
-            viewModel.fetchLocation()
-        }
+        if (isGranted) viewModel.fetchLocation()
     }
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) onNavigateBack()
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF6F7F9)).statusBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF6F7F9))
+            .statusBarsPadding()
+    ) {
         TopAppBar(
             title = { Text("Новая неисправность", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
-            navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, null) } },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.White,
+                titleContentColor = Color.Black,
+                navigationIconContentColor = Color.Black
+            )
         )
 
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CustomDropdownField("Участок / перегон", "Перегон А — Б")
-            CustomDropdownField("Путь", "Главный путь 1")
+            // Выпадающие списки
+            DropdownField(
+                label = "Участок / перегон",
+                options = viewModel.sections,
+                selectedOption = viewModel.selectedSection,
+                onOptionSelected = { viewModel.selectedSection = it }
+            )
+            DropdownField(
+                label = "Путь",
+                options = viewModel.tracks,
+                selectedOption = viewModel.selectedTrack,
+                onOptionSelected = { viewModel.selectedTrack = it }
+            )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -108,11 +131,22 @@ fun CreateScreen(
                         Text(uiState.errorMessage!!, color = Color(0xFFC62828), fontSize = 12.sp, modifier = Modifier.padding(start = 12.dp, top = 4.dp))
                     }
                 }
-                CustomTextField("Метры", "50", {}, modifier = Modifier.weight(1f))
+                CustomTextField("Метры", uiState.meters, viewModel::onMetersChange, modifier = Modifier.weight(1f))
             }
 
-            CustomDropdownField("Категория объекта", "Крепления (болты, клеммы)")
-            CustomDropdownField("Тип неисправности", "Расшатан болт")
+            DropdownField(
+                label = "Категория объекта",
+                options = viewModel.categories,
+                selectedOption = viewModel.selectedCategory,
+                onOptionSelected = { viewModel.selectedCategory = it }
+            )
+
+            DropdownField(
+                label = "Тип неисправности",
+                options = viewModel.types,
+                selectedOption = viewModel.selectedType,
+                onOptionSelected = { viewModel.selectedType = it }
+            )
 
             Text("Степень опасности", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -122,7 +156,6 @@ fun CreateScreen(
             }
 
             Text("Фото", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-            // баннер ошибки (если камера запрещена)
             if (isCameraDenied) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0D6)),
@@ -139,31 +172,29 @@ fun CreateScreen(
                     }
                 }
             }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Камера
                 Box(
                     modifier = Modifier.size(72.dp).border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
                         .clickable {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                currentPhotoUri = PhotoUtils.createImageUri(context)
-                                cameraLauncher.launch(currentPhotoUri!!)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
+                                try {
+                                    currentPhotoUri = PhotoUtils.createImageUri(context)
+                                    cameraLauncher.launch(currentPhotoUri!!)
+                                } catch (e: Exception) { e.printStackTrace() }
+                            } else permissionLauncher.launch(Manifest.permission.CAMERA)
                         },
                     contentAlignment = Alignment.Center
                 ) { Icon(Icons.Outlined.PhotoCamera, null, tint = Color(0xFF1B4F9C)) }
 
-                // Галерея
                 Box(
                     modifier = Modifier.size(72.dp).border(2.dp, Color(0xFF8A93A0), RoundedCornerShape(8.dp))
                         .clickable { galleryLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) { Icon(Icons.Outlined.Image, null, tint = Color(0xFF1B4F9C)) }
-                // кнопка фонарика
+
                 Box(
-                    modifier = Modifier
-                        .size(72.dp)
+                    modifier = Modifier.size(72.dp)
                         .border(2.dp, if (isFlashlightOn) Color(0xFFFFC107) else Color(0xFF8A93A0), RoundedCornerShape(8.dp))
                         .background(if (isFlashlightOn) Color(0xFFFFF8E1) else Color.White)
                         .clickable {
@@ -171,13 +202,8 @@ fun CreateScreen(
                             viewModel.toggleFlashlight(isFlashlightOn)
                         },
                     contentAlignment = Alignment.Center
-                ) {
-                    Text("🔦", fontSize = 24.sp)
-                }
+                ) { Text("🔦", fontSize = 24.sp) }
 
-
-
-                // Превью фото
                 if (currentPhotoUri != null) {
                     Box(modifier = Modifier.size(72.dp).background(Color(0xFFCBD2DC), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         Text("Фото 1", fontSize = 12.sp, color = Color(0xFF4B5563))
@@ -185,32 +211,38 @@ fun CreateScreen(
                 }
             }
 
+            // GPS-координаты (если получены)
+            if (uiState.gpsCoordinates.isNotEmpty()) {
+                CustomTextField("GPS-координаты", uiState.gpsCoordinates, {})
+            }
+
+            // Комментарий
             OutlinedTextField(
                 value = uiState.comment, onValueChange = viewModel::onCommentChange,
                 label = { Text("Комментарий") }, modifier = Modifier.fillMaxWidth().height(100.dp),
-                shape = RoundedCornerShape(8.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White)
+                shape = RoundedCornerShape(8.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black
+                )
             )
 
-            // Дата и время (кликабельно для получения GPS)
-            // Дата и время
-            Box(
-                modifier = Modifier.clickable {
-                    // Проверяем разрешение перед запросом
+            CustomDropdownField(label = "Дата и время", value = uiState.date, icon = Icons.Default.DateRange)
+
+            Button(
+                onClick = {
                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                         viewModel.fetchLocation()
                     } else {
-                        // Запрашиваем разрешение
-                        locationPermissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            )
-                        )
+                        locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                     }
-                }
-            ) {
-                CustomDropdownField(label = "Дата и время", value = "25.10.2026, 02:14", icon = Icons.Default.DateRange)
-            }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE8F0FE), contentColor = Color(0xFF1B4F9C)),
+                shape = RoundedCornerShape(8.dp)
+            ) { Text("🌍 Получить GPS-координаты") }
 
             Button(
                 onClick = viewModel::saveDefect, enabled = !uiState.isLoading,
@@ -225,6 +257,8 @@ fun CreateScreen(
         }
     }
 }
+
+// --- Вспомогательные компоненты ---
 
 @Composable
 fun CustomTextField(label: String, value: String, onValueChange: (String) -> Unit, isError: Boolean = false, modifier: Modifier = Modifier) {
